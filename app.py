@@ -11,7 +11,8 @@ def load_model():
 model = load_model()
 
 st.title("🏠 Prediksi Harga Rumah Jabodetabek")
-st.markdown("Input 7 spesifikasi utama untuk estimasi harga (Rp). Model: XGBoost (R² 0.91 log-scale, MAPE ~21%).")
+st.markdown("Input 7 spesifikasi utama untuk estimasi harga (Rp).")
+st.markdown("Model: XGBoost (R² 0.91 log-scale, MAPE ~21%).")
 
 # Reverse mapping: Text input → encoded numeric (match training lo)
 condition_map = {'butuh renovasi': 0, 'sudah renovasi': 1, 'baru': 2, 'bagus': 3, 'bagus sekali': 4}  # property_condition
