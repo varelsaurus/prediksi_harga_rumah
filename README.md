@@ -67,7 +67,7 @@ Project ini dibangun dari notebook Jupyter/Colab (`notebook.ipynb`) yang handle 
   - Evaluasi: R² log 0.91, MAPE 21% (error Rp ~1.4 Miliar rata-rata).
 - **Visual**: Histogram skew sebelum/sesudah log, boxplot outliers, feature importance bar chart.
 
-![Preprocessing Flow](images/before-after) <!-- Upload diagram dari notebook -->
+![Preprocessing Flow](images/before-after.png) <!-- Upload diagram dari notebook -->
 
 ## 🤝 Contributing
 - Fork repo, tambah fitur (e.g., map lokasi), PR!
