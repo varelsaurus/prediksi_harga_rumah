@@ -2,71 +2,125 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import matplotlib.pyplot as plt
+
+# Konfigurasi Halaman
+st.set_page_config(
+    page_title="Estimasi Harga Rumah Jabodetabek",
+    page_icon="🏠",
+    layout="wide"
+)
 
 # Load model
 @st.cache_resource
-def load_model():
+def muat_model():
     return joblib.load('xgb_house_model.pkl')
 
-model = load_model()
+model_rumah = muat_model()
 
-st.title("🏠 Prediksi Harga Rumah Jabodetabek")
-st.markdown("Input 7 spesifikasi utama untuk estimasi harga (Rp).")
-st.markdown("Model: XGBoost (R² 0.91 log-scale, MAPE ~21%).")
+# Header
+st.title("🏠 Dashboard Estimasi Harga Rumah Jabodetabek")
+st.markdown("""
+Dashboard ini menggunakan model **XGBoost** yang dilatih dengan data real dari Rumah123 untuk membantu Anda 
+memperkirakan harga pasar properti secara objektif.
+""")
 
-# Reverse mapping: Text input → encoded numeric (match training lo)
-condition_map = {'butuh renovasi': 0, 'sudah renovasi': 1, 'baru': 2, 'bagus': 3, 'bagus sekali': 4}  # property_condition
-certificate_map = {'lainnya (ppjb,girik,adat,dll)': 0, 'hgb - hak guna bangunan': 1, 'shm - sertifikat hak milik': 2}  # certificate
-furnishing_map = {'unfurnished': 0, 'semi furnished': 1, 'furnished': 2}  # furnishing
-city_map = {'bekasi': 0, 'jakarta': 1, 'depok': 2, 'tangerang': 3, 'bogor': 4}  # Adjust daftar city lo dari data
+# Setup Tabs
+tab_prediksi, tab_insight = st.tabs(["🔮 Prediksi Harga", "📊 Insight & Analisis"])
 
-# Sidebar input (7 utama: city, land_size, building_size, certificate, property_condition, bedrooms, bathrooms)
-st.sidebar.header("Input Spesifikasi Rumah")
-city_text = st.sidebar.selectbox("City", ['Bekasi', 'Jakarta', 'Depok', 'Tangerang', 'Bogor'])  # Text, auto encoded
-land_size = st.sidebar.slider("Luas Tanah (m²)", 30, 1000, 100)
-building_size = st.sidebar.slider("Luas Bangunan (m²)", 50, 500, 120)
-certificate_text = st.sidebar.selectbox("Sertifikat", ['Lainnya (PPJB,Girik,Adat,dll)', 'HGB - Hak Guna Bangunan', 'SHM - Sertifikat Hak Milik'], index=2)
-property_condition_text = st.sidebar.selectbox("Kondisi Property", ['Butuh Renovasi', 'Sudah Renovasi', 'Baru', 'Bagus', 'Bagus Sekali'], index=3)
-bedrooms = st.sidebar.slider("Bedrooms", 2, 8, 3)
-bathrooms = st.sidebar.slider("Bathrooms", 1, 6, 2)
+with tab_prediksi:
+    st.subheader("Detail Properti")
+    
+    # Grid layout untuk input
+    baris1_kol1, baris1_kol2, baris1_kol3 = st.columns(3)
+    
+    with baris1_kol1:
+        nama_kota = st.selectbox("Kota/Kabupaten", ['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor'])
+        luas_tanah = st.number_input("Luas Tanah (m²)", min_value=10, max_value=2000, value=100)
+        luas_bangunan = st.number_input("Luas Bangunan (m²)", min_value=10, max_value=1500, value=120)
 
-# Convert text to encoded
-en_city = city_map.get(city_text.lower(), 0)  # Default 0
-en_certificate = certificate_map.get(certificate_text.lower(), 2)
-en_property_condition = condition_map.get(property_condition_text.lower(), 3)
-en_furnishing = furnishing_map.get('unfurnished', 0)  # Default
+    with baris1_kol2:
+        kamar_tidur = st.slider("Kamar Tidur", 1, 10, 3)
+        kamar_mandi = st.slider("Kamar Mandi", 1, 10, 2)
+        jenis_sertifikat = st.selectbox("Jenis Sertifikat", 
+                                       ['SHM - Sertifikat Hak Milik', 'HGB - Hak Guna Bangunan', 'Lainnya (PPJB, Girik, dll)'])
 
-carports = 1  
-electricity = 2200
-maid_bedrooms = 0
-maid_bathrooms = 0
-garages = 1
+    with baris1_kol3:
+        kondisi_properti = st.selectbox("Kondisi Properti", 
+                                     ['Bagus sekali', 'Bagus', 'Baru', 'Sudah Renovasi', 'Butuh Renovasi'])
+        jumlah_carport = st.number_input("Carport/Garasi", 0, 10, 1)
+        daya_listrik = st.select_slider("Daya Listrik (VA)", [900, 1300, 2200, 3500, 4400, 5500, 6600, 7700, 11000])
 
-input_data = np.array([[en_city, bedrooms, bathrooms, land_size, building_size, carports, en_certificate, electricity,
-                        maid_bedrooms, maid_bathrooms, en_property_condition, garages, en_furnishing]])
+    # Pemetaan internal (sesuai training)
+    pemetaan_kota = {'bekasi': 0, 'jakarta': 1, 'depok': 2, 'tangerang': 3, 'bogor': 4}
+    pemetaan_sertifikat = {'lainnya (ppjb, girik, dll)': 0, 'hgb - hak guna bangunan': 1, 'shm - sertifikat hak milik': 2}
+    pemetaan_kondisi = {'butuh renovasi': 0, 'sudah renovasi': 1, 'baru': 2, 'bagus': 3, 'bagus sekali': 4}
 
-if st.button("🔮 Prediksi Harga"):
-    try:
-        # Prediksi di log-scale
-        y_pred_log = model.predict(input_data)[0]
-        # Inverse ke Rp asli
-        y_pred_rp = np.expm1(y_pred_log)
-        
-        st.success(f"**Prediksi Harga: Rp {y_pred_rp:,.0f}**")
-        st.info(f"Estimasi Rentang: Rp {y_pred_rp * 0.8:,.0f} - Rp {y_pred_rp * 1.2:,.0f} (error ~20% berdasarkan MAPE model)")
-        
-        # FIXED: Plot importance (pake get_score method XGB, aman)
-        st.subheader("Faktor Pengaruh Harga:")
+    # Encode data
+    kota_terencode = pemetaan_kota.get(nama_kota.lower(), 1)
+    sertifikat_terencode = pemetaan_sertifikat.get(jenis_sertifikat.lower(), 2)
+    kondisi_terencode = pemetaan_kondisi.get(kondisi_properti.lower(), 3)
+    
+    # Susun data input (match 13 fitur dari model)
+    data_input = np.array([[kota_terencode, kamar_tidur, kamar_mandi, luas_tanah, luas_bangunan, jumlah_carport, 
+                            sertifikat_terencode, daya_listrik, 0, 0, kondisi_terencode, 0, 0]])
+
+    if st.button("🔮 Hitung Estimasi Harga", use_container_width=True):
         try:
-            booster = model.get_booster()
-            importance_dict = booster.get_score(importance_type='weight')
-            importance_df = pd.DataFrame(list(importance_dict.items()), columns=['Feature', 'Importance']).sort_values('Importance', ascending=False).head(7)
-            st.bar_chart(importance_df.set_index('Feature'))
-        except:
-            st.warning("Importance plot gak tersedia—model versi issue.")
-        
-    except ValueError as e:
-        st.error(f"Error prediksi: {e}. Pastiin input match model features.")
-        st.info("Debug: Cek X.columns di Colab & input_data array.")
+            # Prediksi dalam log-scale -> Konversi ke Rupiah
+            hasil_prediksi_log = model_rumah.predict(data_input)[0]
+            harga_estimasi_rupiah = np.expm1(hasil_prediksi_log)
+            
+            # Tampilkan Hasil
+            st.divider()
+            hasil_kol1, hasil_kol2 = st.columns([1, 1])
+            with hasil_kol1:
+                st.metric("Estimasi Harga Pasar", f"Rp {harga_estimasi_rupiah:,.0f}")
+            with hasil_kol2:
+                st.info(f"**Rentang Wajar:** Rp {(harga_estimasi_rupiah*0.8):,.0f} - Rp {(harga_estimasi_rupiah*1.2):,.0f}")
+            
+            st.caption("*Disclaimer: Harga merupakan estimasi berdasarkan analisa model data science dan mungkin berbeda dengan kondisi real di lapangan.")
 
-st.markdown("---\nModel berdasarkan data Rumah123 Jabodetabek. Update 2025.")
+        except Exception as kendala:
+            st.error(f"Terjadi kesalahan saat menghitung prediksi: {kendala}")
+
+with tab_insight:
+    st.subheader("Faktor Penentu Harga")
+    st.markdown("Berikut adalah fitur-fitur yang paling mempengaruhi prediksi harga menurut model XGBoost:")
+    
+    try:
+        # Ambil skor kepentingan fitur
+        booster_model = model_rumah.get_booster()
+        skor_kepentingan = booster_model.get_score(importance_type='weight')
+        
+        # Mapping nama fitur ke bahasa manusia
+        nama_fitur_human = {
+            'f0': 'Kota', 'f1': 'Kamar Tidur', 'f2': 'Kamar Mandi', 
+            'f3': 'Luas Tanah', 'f4': 'Luas Bangunan', 'f5': 'Carport',
+            'f6': 'Sertifikat', 'f7': 'Listrik', 'f10': 'Kondisi Properti'
+        }
+        
+        list_kepentingan = []
+        for id_fitur, skor in skor_kepentingan.items():
+            nama_rapi = nama_fitur_human.get(id_fitur, id_fitur)
+            list_kepentingan.append({'Fitur': nama_rapi, 'Skor': skor})
+        
+        if list_kepentingan:
+            df_kepentingan = pd.DataFrame(list_kepentingan).sort_values(by='Skor', ascending=True)
+            
+            # Visualisasi
+            fig_insight, ax_insight = plt.subplots(figsize=(10, 6))
+            ax_insight.barh(df_kepentingan['Fitur'], df_kepentingan['Skor'], color='#0077b6')
+            ax_insight.set_xlabel('Tingkat Pengaruh terhadap Harga (Weight)')
+            st.pyplot(fig_insight)
+            
+            st.success("✅ **Insight:** Fitur dengan grafik terpanjang adalah faktor penentu harga paling dominan di Jabodetabek.")
+        else:
+            st.warning("Data statistik fitur tidak ditemukan.")
+
+    except Exception as kendala_insight:
+        st.warning(f"Visualisasi tidak dapat ditampilkan. (Detail: {kendala_insight})")
+
+# Footer
+st.divider()
+st.markdown("Developed by Varel | Sumber Data: Rumah123 | Versi Model: XGB v1.2")
