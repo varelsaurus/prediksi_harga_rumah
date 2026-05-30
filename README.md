@@ -48,7 +48,7 @@ Membeli rumah adalah salah satu keputusan finansial terbesar dalam hidup seseora
 
 | Fitur | Tipe | Deskripsi |
 |---|---|---|
-| `city` | Kategorikal | Kota/kabupaten (Jakarta, Bekasi, Depok, Tangerang, Bogor) |
+| `city` | Kategorikal | Kota/kabupaten (Jakarta Barat, Jakarta Pusat, Jakarta Selatan, Jakarta Timur, Jakarta Utara, Bekasi, Depok, Tangerang, Bogor) |
 | `bedrooms` | Numerik | Jumlah kamar tidur |
 | `bathrooms` | Numerik | Jumlah kamar mandi |
 | `land_size_m2` | Numerik | Luas tanah dalam m² |
@@ -58,7 +58,7 @@ Membeli rumah adalah salah satu keputusan finansial terbesar dalam hidup seseora
 | `electricity` | Numerik | Daya listrik (VA) |
 | `maid_bedrooms` | Numerik | Jumlah kamar pembantu |
 | `maid_bathrooms` | Numerik | Jumlah kamar mandi pembantu |
-| `property_condition` | Kategorikal | Kondisi properti (Baru, Bagus, Butuh Renovasi, dll.) |
+| `property_condition` | Kategorikal | Kondisi properti (Baru, Bagus, Bagus Sekali, Sudah Renovasi, Butuh Renovasi) |
 | `garages` | Numerik | Jumlah garasi |
 | `furnishing` | Kategorikal | Status furnishing |
 
@@ -276,7 +276,7 @@ prediksi_harga_rumah/
 - [ ] Menambahkan data dari platform properti lain (OLX Property, 99.co)
 - [ ] Feature engineering lanjutan (harga per m², rasio bangunan/tanah)
 - [ ] Hyperparameter tuning dengan Optuna/GridSearch
-- [ ] Menambahkan fitur lokasi spesifik (kecamatan/kelurahan)
+- [x] Menambahkan fitur lokasi spesifik (Kini mendukung pembagian 5 wilayah Jakarta secara detail pada dashboard)
 - [ ] Implementasi model ensemble (stacking XGBoost + Random Forest)
 
 ---
