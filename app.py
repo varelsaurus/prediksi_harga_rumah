@@ -35,7 +35,10 @@ with tab_prediksi:
     baris1_kol1, baris1_kol2, baris1_kol3 = st.columns(3)
     
     with baris1_kol1:
-        nama_kota = st.selectbox("Kota/Kabupaten", ['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor'])
+        nama_kota = st.selectbox("Kota/Kabupaten", [
+            'Jakarta Selatan', 'Jakarta Barat', 'Jakarta Pusat', 'Jakarta Timur', 'Jakarta Utara', 
+            'Bekasi', 'Depok', 'Tangerang', 'Bogor'
+        ])
         luas_tanah = st.number_input("Luas Tanah (m²)", min_value=10, max_value=2000, value=100)
         luas_bangunan = st.number_input("Luas Bangunan (m²)", min_value=10, max_value=1500, value=120)
 
@@ -51,15 +54,38 @@ with tab_prediksi:
         jumlah_carport = st.number_input("Carport/Garasi", 0, 10, 1)
         daya_listrik = st.select_slider("Daya Listrik (VA)", [900, 1300, 2200, 3500, 4400, 5500, 6600, 7700, 11000])
 
-    # Pemetaan internal (sesuai training)
-    pemetaan_kota = {'bekasi': 0, 'jakarta': 1, 'depok': 2, 'tangerang': 3, 'bogor': 4}
-    pemetaan_sertifikat = {'lainnya (ppjb, girik, dll)': 0, 'hgb - hak guna bangunan': 1, 'shm - sertifikat hak milik': 2}
-    pemetaan_kondisi = {'butuh renovasi': 0, 'sudah renovasi': 1, 'baru': 2, 'bagus': 3, 'bagus sekali': 4}
+    # Pemetaan internal (sesuai training menggunakan LabelEncoder)
+    pemetaan_kota = {
+        'bekasi': 0,
+        'bogor': 1,
+        'depok': 2,
+        'jakarta barat': 3,
+        'jakarta pusat': 4,
+        'jakarta selatan': 5,
+        'jakarta timur': 6,
+        'jakarta utara': 7,
+        'tangerang': 8
+    }
+    pemetaan_sertifikat = {
+        'hgb - hak guna bangunan': 0,
+        'hp - hak pakai': 1,
+        'lainnya (ppjb, girik, dll)': 2,
+        'shm - sertifikat hak milik': 3
+    }
+    pemetaan_kondisi = {
+        'bagus': 0,
+        'bagus sekali': 1,
+        'baru': 2,
+        'butuh renovasi': 3,
+        'semi furnished': 4,
+        'sudah renovasi': 5,
+        'unfurnished': 6
+    }
 
     # Encode data
-    kota_terencode = pemetaan_kota.get(nama_kota.lower(), 1)
-    sertifikat_terencode = pemetaan_sertifikat.get(jenis_sertifikat.lower(), 2)
-    kondisi_terencode = pemetaan_kondisi.get(kondisi_properti.lower(), 3)
+    kota_terencode = pemetaan_kota.get(nama_kota.lower(), 5)
+    sertifikat_terencode = pemetaan_sertifikat.get(jenis_sertifikat.lower(), 3)
+    kondisi_terencode = pemetaan_kondisi.get(kondisi_properti.lower(), 0)
     
     # Susun data input (match 13 fitur dari model)
     data_input = np.array([[kota_terencode, kamar_tidur, kamar_mandi, luas_tanah, luas_bangunan, jumlah_carport, 
